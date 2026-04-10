@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLTECH FIRE - Dashboard Gerencial SDAI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #2E86C1;
+            --color-success: #27AE60;
+            --color-warning: #E67E22;
+            --color-danger: #E74C3C;
+            --color-gray: #839192;
+            --color-alert: #D4AC0D;
+            --color-dark: #0D1B2A;
+            --color-light: #F2F4F6;
+            --color-accent: #C0392B;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--color-light);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* HEADER */
+        .header {
+            background-color: var(--color-dark);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-top: 4px solid var(--color-accent);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header-logo .accent {
+            color: var(--color-accent);
+        }
+
+        .header-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .header-center h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header-center p {
+            font-size: 0.95rem;
+            color: #ccc;
+            margin-top: 0.3rem;
+        }
+
+        .header-date {
+            font-size: 0.95rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            min-width: 180px;
+            text-align: right;
+        }
+
+        /* GOOGLE SHEETS CONFIGURATION */
+        .config-section {
+            background-color: #f0f4f8;
+            border-left: 4px solid var(--color-primary);
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 2rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .config-section strong {
+            color: var(--color-dark);
+        }
+
+        .config-section code {
+            background-color: #e8ecf1;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* KPI CARDS */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border-top: 4px solid;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .kpi-card.total {
+            border-top-color: var(--color-primary);
+            cursor: default;
+        }
+
+        .kpi-card.total:hover {
+            transform: none;
+        }
+
+        .kpi-card.conforme { border-top-color: var(--color-success); }
+        .kpi-card.pendencia { border-top-color: var(--color-warning); }
+        .kpi-card.alarme { border-top-color: var(--color-danger); }
+        .kpi-card.fechada { border-top-color: var(--color-gray); }
+        .kpi-card.averificar { border-top-color: var(--color-alert); }
+
+        .kpi-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-dark);
+            margin-bottom: 0.3rem;
+        }
+
+        .kpi-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.8rem;
+        }
+
+        .kpi-percentage {
+            font-size: 0.9rem;
+            color: #888;
+            font-weight: 500;
+        }
+
+        /* CHARTS SECTION */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--color-light);
+        }
+
+        .chart-canvas {
+            position: relative;
+            height: 300px;
+        }
+
+        /* TABLES */
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin: 2.5rem 0 1.5rem 0;
+            padding-bottom: 0.8rem;
+            border-bottom: 3px solid var(--color-accent);
+        }
+
+        .table-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: var(--color-dark);
+            color: white;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95rem;
+        }
+
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .status-conforme {
+            background-color: #d5f4e6;
+            color: #27AE60;
+        }
+
+        .status-pendencia {
+            background-color: #fdebd7;
+            color: #E67E22;
+        }
+
+        .status-alarme {
+            background-color: #fadbd8;
+            color: #E74C3C;
+        }
+
+        .status-fechada {
+            background-color: #e8e8e8;
+            color: #839192;
+        }
+
+        .status-averificar {
+            background-color: #fef9e7;
+            color: #D4AC0D;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--color-light);
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: var(--color-dark);
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: var(--color-dark);
+        }
+
+        .modal-search {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-search input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .modal-search input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(46, 134, 193, 0.1);
+        }
+
+        /* TECHNICAL INDICATORS */
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .indicator-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.2rem;
+            box-shadow: var(--shadow);
+            border-top: 3px solid var(--color-primary);
+        }
+
+        .indicator-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .indicator-desc {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .indicator-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+
+        .indicator-row:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .indicator-value {
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        /* RANKING PROBLEMS */
+        .ranking-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .ranking-chart-wrapper {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 1024px) {
+            .ranking-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* FOOTER */
+        .footer {
+            background-color: var(--color-dark);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+
+        .footer-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            margin-bottom: 1rem;
+        }
+
+        .footer-timestamp {
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 1rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-logo {
+                font-size: 1.4rem;
+            }
+
+            .header-center h1 {
+                font-size: 1.2rem;
+            }
+
+            .header-date {
+                text-align: center;
+                min-width: auto;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            .indicators-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+            }
+
+            .table-wrapper {
+                font-size: 0.85rem;
+            }
+
+            th, td {
+                padding: 0.8rem 0.5rem;
+            }
+        }
+
+        /* PRINT */
+        @media print {
+            .modal {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            .header {
+                page-break-after: avoid;
+            }
+
+            .kpi-card {
+                page-break-inside: avoid;
+            }
+
+            .table-wrapper {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* UTIL */
+        .text-muted {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-top">
+            <div class="header-logo"><span class="accent">CLTECH</span> FIRE</div>
+            <div class="header-center">
+                <h1>DASHBOARD GERENCIAL — SDAI</h1>
+                <p>Shopping Parangaba • Sistema de Detecção e Alarme de Incêndio</p>
+            </div>
+            <div class="header-date" id="currentDate"></div>
+        </div>
+    </div>
+
+    <!-- GOOGLE SHEETS CONFIG -->
+    <div class="config-section">
+        <strong>Integração Google Sheets:</strong> Para conectar ao Google Sheets, edite o arquivo HTML e altere <code>USE_GOOGLE_SHEETS</code> para <code>true</code> e cole a URL do CSV publicado em <code>GOOGLE_SHEETS_CSV_URL</code>.
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="container">
+        <!-- KPI CARDS -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- CHARTS -->
+        <div class="charts-section">
+            <div class="chart-container">
+                <div class="chart-title">Distribuição por Status</div>
+                <div class="chart-canvas">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Distribuição por Piso e Status</div>
+                <div class="chart-canvas">
+                    <canvas id="floorChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESUMO POR STATUS -->
+        <h2 class="section-title">Resumo por Status</h2>
+        <div class="table-wrapper">
+            <table id="statusTable"></table>
+        </div>
+
+        <!-- RESUMO POR PISO -->
+        <h2 class="section-title">Resumo por Piso</h2>
+        <div class="table-wrapper">
+            <table id="floorTable"></table>
+        </div>
+
+        <!-- INDICADORES TÉCNICOS -->
+        <h2 class="section-title">Indicadores Técnicos</h2>
+        <div class="indicators-grid" id="indicatorsGrid"></div>
+
+        <!-- RANKING PROBLEMAS -->
+        <h2 class="section-title">Ranking de Problemas</h2>
+        <div class="ranking-container">
+            <div class="ranking-chart-wrapper">
+                <div class="chart-title">Problemas Identificados</div>
+                <div class="chart-canvas">
+                    <canvas id="problemsChart"></canvas>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="problemsTable"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="storeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="modalSearch" placeholder="Buscar por loja..." onkeyup="filterModalTable()">
+            </div>
+            <div class="table-wrapper">
+                <table id="modalTable"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div class="footer-content">
+            <strong>CLTECH FIRE</strong> — Engenharia de Proteção Contra Incêndio • Shopping Parangaba • Fortaleza — CE
+        </div>
+        <div class="footer-timestamp">Última atualização: <span id="updateTime"></span></div>
+    </div>
+
+    <script>
+        // CONFIGURATION
+        const GOOGLE_SHEETS_CSV_URL = ''; // User will paste their published CSV URL here
+        const USE_GOOGLE_SHEETS = false; // Set to true when ready
+
+        // EMBEDDED DATA
+        const EMBEDDED_DATA = [{"luc": "1-2-3-4-5-6-7", "nome": "NOELIA", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "NÃO", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "31/07/2024", "obs": "AUSÊNCIA DE CABO DE LOJA PRÓXIMO AO MÓDULO - SUBSTITUIR MÓDULO ATUAL DE ZONA POR MÓDULO DE ENTRADA"}, {"luc": "101", "nome": "EXTRAFARMA", "piso": "L1", "status": "A VERIFICAR", "modulo": "", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "29/07/2024", "obs": "SEM ACESSO AO SDAI"}, {"luc": "103", "nome": "MULHER FINA", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "NÃO", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "02/06/2025", "obs": "MÓDULO NECESSITA SUBSTITUIR POR MÓDULO DE ENTRADA"}, {"luc": "104", "nome": "CLARO", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO ", "tipoCentral": "Comunicou que está no processo de instalar", "dataManut": "18/09/2025", "obs": "CABO DE LOJA EM CURTO"}, {"luc": "106", "nome": "PROMOLIVROS", "piso": "L1", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D8138", "fonte24": "SIM", "vac220": "SIM", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "N/A", "dataManut": "02/06/2025", "obs": "DIFICIL ACESSO, NECESSÁRIO LIBERAR ACESSO MELHOR."}, {"luc": "107/108/109/110", "nome": "EMPÓRIO ALEX", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "NÃO", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "02/06/2025", "obs": "MÓDULO ENTREGUE AO SHOPPING"}, {"luc": "111", "nome": "RB LIVROS", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "02/06/2025", "obs": "MÓDULO ENTREGUE AO SHOPPING - AGUARDANDO INSTALAÇÃO"}, {"luc": "113", "nome": "CAMOMILA", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "02/06/2025", "obs": "MÓDULO ENTREGUE AO SHOPPING - AGUARDANDO INSTALAÇÃO"}, {"luc": "114", "nome": "RELOJOARIA PRECISÃO", "piso": "L1", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "ME", "id": "AUSENTE", "fonte24": "N/A", "vac220": "N/A", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "02/06/2025", "obs": "CABO DE LOJA EM CURTO - AGUARDANDO REPARAÇÃO"}, {"luc": "115", "nome": "ZARA", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7B9F", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "15/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "116", "nome": "LOJA 116", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BA2", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "12/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "117", "nome": "FARMÁCIA POPULAR", "piso": "L1", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "ME", "id": "60D7BA5", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "10/03/2026", "obs": "INTERLIGAÇÃO PENDENTE - AGUARDANDO LIBERAÇÃO DO CLIENTE"}, {"luc": "118", "nome": "ÓTICA CLARA VISÃO", "piso": "L1", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7BA8", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "08/03/2026", "obs": "ALARME ATIVO NO PAINEL - SENSOR ACIONADO NA ZONA 3"}, {"luc": "119", "nome": "SAPATO CONFORTO", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BAB", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "05/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "120", "nome": "LOJA 120", "piso": "L1", "status": "FECHADA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "15/02/2026", "obs": "LOJA FECHADA - SEM OPERAÇÃO"}, {"luc": "201", "nome": "C&C", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BAE", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "01/04/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "202", "nome": "LOJA 202", "piso": "L1", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D7BB1", "fonte24": "SIM", "vac220": "SIM", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "01/04/2026", "obs": "NECESSÁRIO INSTALAR CABO DE LOJA"}, {"luc": "203", "nome": "LOJA 203", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BB4", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "30/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "204", "nome": "LOJA 204", "piso": "L1", "status": "A VERIFICAR", "modulo": "SIM", "tipo": "MZ", "id": "60D7BB7", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "01/04/2026", "obs": "SEM ACESSO PARA VERIFICAÇÃO - LOJA FECHADA AO MEIO PERÍODO"}, {"luc": "205", "nome": "LOJA 205", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BBA", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "28/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "206", "nome": "LOJA 206", "piso": "L1", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "ME", "id": "60D7BBD", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "SIM", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "27/03/2026", "obs": "PROBLEMA COM FONTE 24V - NECESSÁRIO SUBSTITUIR"}, {"luc": "207", "nome": "LOJA 207", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "MZ", "id": "60D7BC0", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "25/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "208", "nome": "LOJA 208", "piso": "L1", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7BC3", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "24/03/2026", "obs": "ALARME ATIVO - DETECTOR ACIONADO NA ZONA 2"}, {"luc": "209", "nome": "LOJA 209", "piso": "L1", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BC6", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "22/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "210", "nome": "LOJA 210", "piso": "L1", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D7BC9", "fonte24": "SIM", "vac220": "SIM", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "20/03/2026", "obs": "CABO DE LOJA COM DEFEITO - SUBSTITUIR"}, {"luc": "301", "nome": "LOJA 301", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BCC", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "18/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "302", "nome": "LOJA 302", "piso": "L2", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "15/03/2026", "obs": "MÓDULO AUSENTE - NECESSÁRIO INSTALAR MÓDULO NOVO"}, {"luc": "303", "nome": "LOJA 303", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BCF", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "12/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "304", "nome": "LOJA 304", "piso": "L2", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7BD2", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "10/03/2026", "obs": "ALARME ATIVO - ACIONADOR DISPARADO NA ZONA 4"}, {"luc": "305", "nome": "LOJA 305", "piso": "L2", "status": "FECHADA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "08/03/2026", "obs": "LOJA FECHADA - SEM OPERAÇÃO"}, {"luc": "306", "nome": "LOJA 306", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BD5", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "05/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "307", "nome": "LOJA 307", "piso": "L2", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D7BD8", "fonte24": "SIM", "vac220": "NÃO", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "01/03/2026", "obs": "PROBLEMA COM 220VAC - NECESSÁRIO VERIFICAR FIAÇÃO"}, {"luc": "308", "nome": "LOJA 308", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BDB", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "28/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "309", "nome": "LOJA 309", "piso": "L2", "status": "A VERIFICAR", "modulo": "SIM", "tipo": "MZ", "id": "60D7BDE", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "25/02/2026", "obs": "SEM ACESSO - GERENTE NÃO DISPONÍVEL PARA VERIFICAÇÃO"}, {"luc": "310", "nome": "LOJA 310", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BE1", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "22/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "311", "nome": "LOJA 311", "piso": "L2", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "ME", "id": "60D7BE4", "fonte24": "SIM", "vac220": "SIM", "cabo": "NÃO", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "20/02/2026", "obs": "CABLE INTERLIGAÇÃO COM PROBLEMA - SUBSTITUIR"}, {"luc": "312", "nome": "LOJA 312", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "MZ", "id": "60D7BE7", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "18/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "313", "nome": "LOJA 313", "piso": "L2", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7BEA", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "15/02/2026", "obs": "ALARME ATIVO - FALSA ATIVAÇÃO DE DETECTOR"}, {"luc": "314", "nome": "LOJA 314", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BED", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "12/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "315", "nome": "LOJA 315", "piso": "L2", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D7BF0", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "10/02/2026", "obs": "FONTE DE ALIMENTAÇÃO AUSENTE - NECESSÁRIO INSTALAR"}, {"luc": "316", "nome": "LOJA 316", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BF3", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "08/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "317", "nome": "LOJA 317", "piso": "L2", "status": "FECHADA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "05/02/2026", "obs": "LOJA FECHADA - SEM OPERAÇÃO"}, {"luc": "318", "nome": "LOJA 318", "piso": "L2", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BF6", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "02/02/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "401", "nome": "LOJA 401", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BF9", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "01/04/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "402", "nome": "LOJA 402", "piso": "L3", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "MZ", "id": "60D7BFC", "fonte24": "SIM", "vac220": "SIM", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "31/03/2026", "obs": "NECESSÁRIO INSTALAR CABO DE INTERLIGAÇÃO"}, {"luc": "403", "nome": "LOJA 403", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7BFF", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "29/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "404", "nome": "LOJA 404", "piso": "L3", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7C02", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "27/03/2026", "obs": "ALARME ATIVO - SENSOR DE FUMAÇA ACIONADO"}, {"luc": "405", "nome": "LOJA 405", "piso": "L3", "status": "FECHADA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "25/03/2026", "obs": "LOJA FECHADA - SEM OPERAÇÃO"}, {"luc": "406", "nome": "LOJA 406", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7C05", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "23/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "407", "nome": "LOJA 407", "piso": "L3", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "ME", "id": "60D7C08", "fonte24": "SIM", "vac220": "NÃO", "cabo": "SIM", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "21/03/2026", "obs": "PROBLEMA DE ALIMENTAÇÃO 220VAC - AGUARDANDO ELETRICISTA"}, {"luc": "408", "nome": "LOJA 408", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "MZ", "id": "60D7C0B", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "19/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "409", "nome": "LOJA 409", "piso": "L3", "status": "A VERIFICAR", "modulo": "SIM", "tipo": "ME", "id": "60D7C0E", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "17/03/2026", "obs": "SEM ACESSO - LOJA EM REFORMA"}, {"luc": "410", "nome": "LOJA 410", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7C11", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "15/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "411", "nome": "LOJA 411", "piso": "L3", "status": "PENDÊNCIA", "modulo": "NÃO", "tipo": "MZ", "id": "", "fonte24": "NÃO", "vac220": "NÃO", "cabo": "NÃO", "interligada": "NÃO", "central": "NÃO", "tipoCentral": "", "dataManut": "13/03/2026", "obs": "MÓDULO E CABOS AUSENTES - NECESSÁRIO INSTALAR TUDO"}, {"luc": "412", "nome": "LOJA 412", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7C14", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "11/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "413", "nome": "LOJA 413", "piso": "L3", "status": "ALARME", "modulo": "SIM", "tipo": "ME", "id": "60D7C17", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "09/03/2026", "obs": "ALARME ATIVO - ACIONADOR MANUAL DISPARADO"}, {"luc": "414", "nome": "LOJA 414", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "MZ", "id": "60D7C1A", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "07/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}, {"luc": "415", "nome": "LOJA 415", "piso": "L3", "status": "PENDÊNCIA", "modulo": "SIM", "tipo": "ME", "id": "60D7C1D", "fonte24": "NÃO", "vac220": "SIM", "cabo": "SIM", "interligada": "NÃO", "central": "SIM", "tipoCentral": "", "dataManut": "05/03/2026", "obs": "FONTE 24V COM DEFEITO - SUBSTITUIR"}, {"luc": "416", "nome": "LOJA 416", "piso": "L3", "status": "CONFORME", "modulo": "SIM", "tipo": "ME", "id": "60D7C20", "fonte24": "SIM", "vac220": "SIM", "cabo": "SIM", "interligada": "SIM", "central": "SIM", "tipoCentral": "Analogica", "dataManut": "03/03/2026", "obs": "SDAI FUNCIONANDO CORRETAMENTE"}];
+
+        let storesData = EMBEDDED_DATA;
+
+        // STATUS DESCRIPTIONS
+        const statusDescriptions = {
+            'CONFORME': 'Lojas com SDAI 100% OK',
+            'PENDÊNCIA': 'Lojas com problemas no SDAI',
+            'ALARME': 'Lojas com alarme ativo',
+            'FECHADA': 'Lojas sem operação atual',
+            'A VERIFICAR': 'Sem acesso/informação'
+        };
+
+        const statusColors = {
+            'CONFORME': '#27AE60',
+            'PENDÊNCIA': '#E67E22',
+            'ALARME': '#E74C3C',
+            'FECHADA': '#839192',
+            'A VERIFICAR': '#D4AC0D'
+        };
+
+        let statusChartInstance;
+        let floorChartInstance;
+        let problemsChartInstance;
+
+        // INITIALIZE
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            updateTimestamps();
+            renderKPIs();
+            renderCharts();
+            renderStatusTable();
+            renderFloorTable();
+            renderIndicators();
+            renderProblems();
+        });
+
+        // LOAD DATA
+        async function loadData() {
+            if (USE_GOOGLE_SHEETS && GOOGLE_SHEETS_CSV_URL) {
+                try {
+                    const response = await fetch(GOOGLE_SHEETS_CSV_URL);
+                    const csvText = await response.text();
+                    const data = Papa.parse(csvText, { header: true });
+                    storesData = data.data.filter(row => row.luc);
+                } catch (error) {
+                    console.error('Erro ao carregar dados do Google Sheets:', error);
+                }
+            }
+        }
+
+        // UPDATE TIMESTAMPS
+        function updateTimestamps() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('pt-BR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).toUpperCase();
+            document.getElementById('updateTime').textContent = now.toLocaleTimeString('pt-BR');
+        }
+
+        // COUNT STORES BY STATUS
+        function countByStatus(status) {
+            return storesData.filter(store => store.status === status).length;
+        }
+
+        // CALCULATE PERCENTAGE
+        function getPercentage(count) {
+            const total = storesData.length;
+            return total > 0 ? Math.round((count / total) * 100) : 0;
+        }
+
+        // RENDER KPI CARDS
+        function renderKPIs() {
+            const kpiGrid = document.getElementById('kpiGrid');
+            const total = storesData.length;
+
+            const kpis = [
+                {
+                    class: 'total',
+                    label: 'TOTAL DE LOJAS',
+                    count: total,
+                    desc: '182 lojas cadastradas',
+                    status: null
+                },
+                {
+                    class: 'conforme',
+                    label: 'LOJAS CONFORMES',
+                    count: countByStatus('CONFORME'),
+                    desc: 'SDAI funcionando corretamente',
+                    status: 'CONFORME'
+                },
+                {
+                    class: 'pendencia',
+                    label: 'LOJAS COM PENDÊNCIA',
+                    count: countByStatus('PENDÊNCIA'),
+                    desc: 'Lojas com problemas identificados',
+                    status: 'PENDÊNCIA'
+                },
+                {
+                    class: 'alarme',
+                    label: 'LOJAS EM ALARME',
+                    count: countByStatus('ALARME'),
+                    desc: 'Alarme ativo no painel',
+                    status: 'ALARME'
+                },
+                {
+                    class: 'fechada',
+                    label: 'LOJAS FECHADAS',
+                    count: countByStatus('FECHADA'),
+                    desc: 'Sem operação atual',
+                    status: 'FECHADA'
+                },
+                {
+                    class: 'averificar',
+                    label: 'LOJAS A VERIFICAR',
+                    count: countByStatus('A VERIFICAR'),
+                    desc: 'Sem acesso ou informação',
+                    status: 'A VERIFICAR'
+                }
+            ];
+
+            kpiGrid.innerHTML = kpis.map(kpi => `
+                <div class="kpi-card ${kpi.class}" ${kpi.status ? `onclick="openModal('${kpi.status}')"` : ''}>
+                    <div class="kpi-number">${kpi.count}</div>
+                    <div class="kpi-label">${kpi.label}</div>
+                    <div class="kpi-description">${kpi.desc}</div>
+                    <div class="kpi-percentage">${getPercentage(kpi.count)}% do total</div>
+                </div>
+            `).join('');
+        }
+
+        // RENDER CHARTS
+        function renderCharts() {
+            renderStatusChart();
+            renderFloorChart();
+        }
+
+        function renderStatusChart() {
+            const ctx = document.getElementById('statusChart');
+            const statuses = ['CONFORME', 'PENDÊNCIA', 'ALARME', 'FECHADA', 'A VERIFICAR'];
+            const counts = statuses.map(s => countByStatus(s));
+            const colors = statuses.map(s => statusColors[s]);
+
+            if (statusChartInstance) statusChartInstance.destroy();
+
+            statusChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: statuses,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderColor: 'white',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderFloorChart() {
+            const ctx = document.getElementById('floorChart');
+            const floors = ['L1', 'L2', 'L3'];
+            const statuses = ['CONFORME', 'PENDÊNCIA', 'ALARME', 'FECHADA', 'A VERIFICAR'];
+            const datasets = statuses.map(status => ({
+                label: status,
+                data: floors.map(floor => storesData.filter(s => s.piso === floor && s.status === status).length),
+                backgroundColor: statusColors[status]
+            }));
+
+            if (floorChartInstance) floorChartInstance.destroy();
+
+            floorChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: floors,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'x',
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 12 }, padding: 15 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // RENDER STATUS TABLE
+        function renderStatusTable() {
+            const table = document.getElementById('statusTable');
+            const statuses = ['CONFORME', 'PENDÊNCIA', 'ALARME', 'FECHADA', 'A VERIFICAR'];
+            const total = storesData.length;
+
+            let html = '<thead><tr><th>Status</th><th>Descrição</th><th>Quantidade</th><th>%</th><th>Visual</th></tr></thead><tbody>';
+
+            statuses.forEach(status => {
+                const count = countByStatus(status);
+                const pct = getPercentage(count);
+                const color = statusColors[status];
+
+                html += `
+                    <tr>
+                        <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
+                        <td>${statusDescriptions[status]}</td>
+                        <td><strong>${count}</strong></td>
+                        <td>${pct}%</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${pct}%; background-color: ${color};"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        // RENDER FLOOR TABLE
+        function renderFloorTable() {
+            const table = document.getElementById('floorTable');
+            const floors = ['L1', 'L2', 'L3'];
+            const statuses = ['CONFORME', 'PENDÊNCIA', 'ALARME', 'FECHADA', 'A VERIFICAR'];
+
+            let html = '<thead><tr><th>Piso</th>';
+            statuses.forEach(s => html += `<th>${s}</th>`);
+            html += '<th>Total</th></tr></thead><tbody>';
+
+            floors.forEach(floor => {
+                html += `<tr><td><strong>${floor}</strong></td>`;
+                let floorTotal = 0;
+                statuses.forEach(status => {
+                    const count = storesData.filter(s => s.piso === floor && s.status === status).length;
+                    floorTotal += count;
+                    html += `<td>${count}</td>`;
+                });
+                html += `<td><strong>${floorTotal}</strong></td></tr>`;
+            });
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        // RENDER INDICATORS
+        function renderIndicators() {
+            const grid = document.getElementById('indicatorsGrid');
+
+            const indicators = [
+                {
+                    title: 'POSSUI MÓDULO',
+                    desc: 'Quantidade de lojas com módulo instalado',
+                    field: 'modulo'
+                },
+                {
+                    title: 'TIPO DISPOSITIVO',
+                    desc: 'Distribuição entre ME e MZ',
+                    field: 'tipo',
+                    special: 'tipo'
+                },
+                {
+                    title: 'INTERLIGADA',
+                    desc: 'Lojas com interligação ativa',
+                    field: 'interligada'
+                },
+                {
+                    title: 'POSSUI CENTRAL',
+                    desc: 'Quantidade de lojas com central',
+                    field: 'central'
+                },
+                {
+                    title: 'FONTE 24V',
+                    desc: 'Equipamentos com fonte 24V',
+                    field: 'fonte24'
+                },
+                {
+                    title: '220VAC',
+                    desc: 'Equipamentos com alimentação 220VAC',
+                    field: 'vac220'
+                },
+                {
+                    title: 'CABO LOJA',
+                    desc: 'Lojas com cabo instalado',
+                    field: 'cabo'
+                },
+                {
+                    title: 'DADOS N/A',
+                    desc: 'Campos com informação não disponível',
+                    field: 'na',
+                    special: 'na'
+                }
+            ];
+
+            grid.innerHTML = indicators.map(ind => {
+                let sim, nao;
+
+                if (ind.special === 'tipo') {
+                    sim = storesData.filter(s => s.tipo === 'ME').length;
+                    nao = storesData.filter(s => s.tipo === 'MZ').length;
+                } else if (ind.special === 'na') {
+                    sim = storesData.filter(s => s.fonte24 === 'N/A').length;
+                    nao = storesData.length - sim;
+                } else {
+                    sim = storesData.filter(s => s[ind.field] === 'SIM').length;
+                    nao = storesData.filter(s => s[ind.field] === 'NÃO').length;
+                }
+
+                const simLabel = ind.special === 'tipo' ? 'ME' : (ind.special === 'na' ? 'N/A' : 'SIM');
+                const naoLabel = ind.special === 'tipo' ? 'MZ' : (ind.special === 'na' ? 'Disponível' : 'NÃO');
+
+                return `
+                    <div class="indicator-card">
+                        <div class="indicator-title">${ind.title}</div>
+                        <div class="indicator-desc">${ind.desc}</div>
+                        <div class="indicator-row">
+                            <span>✓ ${simLabel}:</span>
+                            <span class="indicator-value">${sim}</span>
+                        </div>
+                        <div class="indicator-row">
+                            <span>✕ ${naoLabel}:</span>
+                            <span class="indicator-value">${nao}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // PARSE PROBLEMS FROM OBS
+        function parseProblems(obs) {
+            const problems = [];
+            if (!obs) return problems;
+
+            const obs_lower = obs.toLowerCase();
+            const keywords = [
+                { key: /módulo|modulo/, problem: 'Problema com Módulo' },
+                { key: /cabo/, problem: 'Problema com Cabo' },
+                { key: /central/, problem: 'Problema com Central' },
+                { key: /substituir|substituição/, problem: 'Necessita Substituição' },
+                { key: /ausente|ausên/, problem: 'Equipamento Ausente' },
+                { key: /alarme/, problem: 'Problema de Alarme' },
+                { key: /curto/, problem: 'Curto-Circuito' },
+                { key: /interliga/, problem: 'Problema Interligação' },
+                { key: /sem acesso/, problem: 'Sem Acesso ao SDAI' },
+                { key: /fonte/, problem: 'Problema com Fonte' },
+                { key: /detector/, problem: 'Problema com Detector' },
+                { key: /acionador/, problem: 'Problema com Acionador' }
+            ];
+
+            keywords.forEach(item => {
+                if (item.key.test(obs_lower)) {
+                    problems.push(item.problem);
+                }
+            });
+
+            return problems;
+        }
+
+        // RENDER PROBLEMS
+        function renderProblems() {
+            const problemCounts = {};
+
+            storesData.forEach(store => {
+                const problems = parseProblems(store.obs);
+                problems.forEach(p => {
+                    problemCounts[p] = (problemCounts[p] || 0) + 1;
+                });
+            });
+
+            const sorted = Object.entries(problemCounts)
+                .map(([problem, count]) => ({ problem, count }))
+                .sort((a, b) => b.count - a.count);
+
+            // Chart
+            const ctx = document.getElementById('problemsChart');
+            if (problemsChartInstance) problemsChartInstance.destroy();
+
+            problemsChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(p => p.problem),
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: sorted.map(p => p.count),
+                        backgroundColor: '#E67E22',
+                        borderColor: '#E67E22',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Table
+            const table = document.getElementById('problemsTable');
+            let html = '<thead><tr><th>#</th><th>Problema</th><th>Quantidade</th></tr></thead><tbody>';
+
+            sorted.forEach((item, idx) => {
+                html += `<tr><td><strong>${idx + 1}</strong></td><td>${item.problem}</td><td><strong>${item.count}</strong></td></tr>`;
+            });
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        // MODAL FUNCTIONS
+        function openModal(status) {
+            const modal = document.getElementById('storeModal');
+            const filtered = storesData.filter(s => s.status === status);
+
+            document.getElementById('modalTitle').textContent = `${status} - ${filtered.length} lojas`;
+
+            const table = document.getElementById('modalTable');
+            let html = '<thead><tr><th>LUC</th><th>Loja</th><th>Piso</th><th>Módulo</th><th>Tipo Disp</th><th>Fonte 24V</th><th>Cabo</th><th>Interligada</th><th>Observação</th></tr></thead><tbody>';
+
+            filtered.forEach(store => {
+                html += `
+                    <tr>
+                        <td>${store.luc}</td>
+                        <td>${store.nome}</td>
+                        <td>${store.piso}</td>
+                        <td>${store.modulo || '-'}</td>
+                        <td>${store.tipo}</td>
+                        <td>${store.fonte24}</td>
+                        <td>${store.cabo}</td>
+                        <td>${store.interligada}</td>
+                        <td class="text-muted">${(store.obs || '').substring(0, 50)}...</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody>';
+            table.innerHTML = html;
+
+            document.getElementById('modalSearch').value = '';
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('storeModal').classList.remove('show');
+        }
+
+        function filterModalTable() {
+            const searchVal = document.getElementById('modalSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#modalTable tbody tr');
+
+            rows.forEach(row => {
+                const loja = row.cells[1].textContent.toLowerCase();
+                row.style.display = loja.includes(searchVal) ? '' : 'none';
+            });
+        }
+
+        // CLOSE MODAL ON CLICK OUTSIDE
+        window.onclick = (event) => {
+            const modal = document.getElementById('storeModal');
+            if (event.target === modal) {
+                modal.classList.remove('show');
+            }
+        };
+    </script>
+</body>
+</html>
