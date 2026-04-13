@@ -710,6 +710,89 @@
             cursor: pointer;
             text-decoration: underline;
         }
+        /* AUTOCOMPLETE */
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--color-primary);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+        }
+        .autocomplete-list.visible {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 0.6rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background: #EBF5FB;
+        }
+        .autocomplete-item .ac-name {
+            font-weight: 600;
+            color: var(--color-dark);
+            font-size: 0.9rem;
+        }
+        .autocomplete-item .ac-name mark {
+            background: #FFF3CD;
+            color: var(--color-dark);
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        .autocomplete-item .ac-luc {
+            font-size: 0.8rem;
+            color: var(--color-gray);
+            margin-right: 0.5rem;
+        }
+        .autocomplete-item .ac-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            color: white;
+            white-space: nowrap;
+        }
+        .autocomplete-item .ac-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .autocomplete-item .ac-left .ac-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .autocomplete-count {
+            padding: 0.4rem 1rem;
+            font-size: 0.75rem;
+            color: var(--color-gray);
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
 
     </style>
 </head>
@@ -743,7 +826,10 @@
             <div class="search-section">
                 <div class="search-section-title">&#x1F50D; Buscar Loja</div>
                 <div class="search-bar">
-                    <input type="text" id="globalSearch" placeholder="Digite o numero (LUC) ou nome da loja..." onkeydown="if(event.key==='Enter') searchStore()">
+                    <div class="search-wrapper">
+                        <input type="text" id="globalSearch" placeholder="Digite o numero (LUC) ou nome da loja..." onkeydown="handleSearchKeydown(event)" oninput="onSearchInput()" autocomplete="off">
+                        <div class="autocomplete-list" id="autocompleteList"></div>
+                    </div>
                     <button onclick="searchStore()">Buscar</button>
                 </div>
                 <div class="search-result" id="searchResult"></div>
@@ -1360,6 +1446,105 @@
     
 
         // ========== GLOBAL SEARCH ==========
+        // ========== AUTOCOMPLETE ==========
+        var _acIndex = -1;
+
+        function onSearchInput() {
+            var query = document.getElementById('globalSearch').value.trim();
+            var listDiv = document.getElementById('autocompleteList');
+            _acIndex = -1;
+
+            if (query.length < 1) {
+                listDiv.classList.remove('visible');
+                return;
+            }
+
+            var qLower = query.toLowerCase();
+            var matches = storesData.filter(function(s) {
+                return (s.luc && s.luc.toLowerCase().includes(qLower)) ||
+                       (s.nome && s.nome.toLowerCase().includes(qLower));
+            }).slice(0, 15);
+
+            if (matches.length === 0) {
+                listDiv.innerHTML = '<div class="autocomplete-count">Nenhuma loja encontrada</div>';
+                listDiv.classList.add('visible');
+                return;
+            }
+
+            var html = '<div class="autocomplete-count">' + matches.length + (matches.length >= 15 ? '+' : '') + ' lojas encontradas</div>';
+            matches.forEach(function(store, idx) {
+                var name = store.nome || 'Sem nome';
+                var highlighted = highlightMatch(name, query);
+                var lucHighlighted = highlightMatch(store.luc || '', query);
+                var color = statusColors[store.status] || '#2E86C1';
+                html += '<div class="autocomplete-item" data-index="' + idx + '" onmousedown="selectAutocomplete(' + idx + ')">' +
+                    '<div class="ac-left"><span class="ac-luc">LUC ' + lucHighlighted + '</span>' +
+                    '<span class="ac-name">' + highlighted + '</span></div>' +
+                    '<span class="ac-status" style="background:' + color + ';">' + (store.status || 'N/A') + '</span></div>';
+            });
+
+            listDiv.innerHTML = html;
+            listDiv.classList.add('visible');
+            window._acMatches = matches;
+        }
+
+        function highlightMatch(text, query) {
+            if (!query) return text;
+            var idx = text.toLowerCase().indexOf(query.toLowerCase());
+            if (idx === -1) return text;
+            return text.substring(0, idx) + '<mark>' + text.substring(idx, idx + query.length) + '</mark>' + text.substring(idx + query.length);
+        }
+
+        function selectAutocomplete(idx) {
+            var matches = window._acMatches || [];
+            if (idx >= matches.length) return;
+            var store = matches[idx];
+            var input = document.getElementById('globalSearch');
+            input.value = store.nome || store.luc || '';
+            document.getElementById('autocompleteList').classList.remove('visible');
+            searchStore();
+        }
+
+        function handleSearchKeydown(e) {
+            var listDiv = document.getElementById('autocompleteList');
+            var items = listDiv.querySelectorAll('.autocomplete-item');
+            if (!listDiv.classList.contains('visible') || items.length === 0) {
+                if (e.key === 'Enter') searchStore();
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _acIndex = Math.min(_acIndex + 1, items.length - 1);
+                updateAcActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                _acIndex = Math.max(_acIndex - 1, -1);
+                updateAcActive(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (_acIndex >= 0) { selectAutocomplete(_acIndex); }
+                else { listDiv.classList.remove('visible'); searchStore(); }
+            } else if (e.key === 'Escape') {
+                listDiv.classList.remove('visible');
+                _acIndex = -1;
+            }
+        }
+
+        function updateAcActive(items) {
+            items.forEach(function(el, i) {
+                if (i === _acIndex) { el.classList.add('active'); el.scrollIntoView({block:'nearest'}); }
+                else { el.classList.remove('active'); }
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            var list = document.getElementById('autocompleteList');
+            var input = document.getElementById('globalSearch');
+            if (list && !list.contains(e.target) && e.target !== input) {
+                list.classList.remove('visible');
+            }
+        });
+
         function searchStore() {
             const query = document.getElementById('globalSearch').value.trim();
             const resultDiv = document.getElementById('searchResult');
